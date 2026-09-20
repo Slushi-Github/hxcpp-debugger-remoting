@@ -62,18 +62,29 @@
 				"runtime": "node",
 				"configurationAttributes": {
 					"launch": {
-						"required": [
-							"program"
-						],
 						"properties": {
 							"program": {
 								"type": "string",
-								"description": "full path to executable.",
+								"description": "Full path to executable (local debug only).",
 								"default": "${workspaceFolder}/bin/yourExecutable.exe"
+							},
+							"remote": {
+								"type": "boolean",
+								"description": "Wait for a remote device to connect instead of launching a local executable.",
+								"default": false
+							},
+							"clientIP": {
+								"type": "string",
+								"description": "If specified, the debugger will ONLY accept connections from this IP."
+							},
+							"port": {
+								"type": "number",
+								"description": "Port to listen on (Defaults to 6972).",
+								"default": 6972
 							},
 							"receiveAdapterOutput": {
 								"type": "boolean",
-								"description": "redirect adapter log to debug console",
+								"description": "Redirect adapter log to debug console",
 								"default": false
 							}
 						}

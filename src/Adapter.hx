@@ -11,7 +11,10 @@ import js.node.stream.Readable.ReadableEvent;
 import hxcpp.debug.jsonrpc.Protocol;
 
 typedef HxppLaunchRequestArguments = LaunchRequestArguments & {
-	var program:String;
+	@:optional var program:String;
+	@:optional var remote:Bool;
+	@:optional var clientIP:String;
+	@:optional var port:Int;
 }
 
 @:keep
@@ -52,8 +55,20 @@ class Adapter extends DebugSession {
 	override function launchRequest(response:LaunchResponse, args:LaunchRequestArguments) {
 		var args:HxppLaunchRequestArguments = cast args;
 		var executable = args.program;
+		var isRemote = args.remote == true;
+		var port = args.port != null ? args.port : 6972;
+		var expectedClientIP = args.clientIP;
 
-		function onConnected(socket) {
+		function onConnected(socket:Socket) {
+			if (expectedClientIP != null && expectedClientIP != "") {
+				var remoteIP = socket.remoteAddress;
+				if (remoteIP != expectedClientIP && remoteIP != '::ffff:$expectedClientIP') {
+					trace('Client IP $remoteIP does not match expected IP $expectedClientIP. Closing connection.');
+					socket.destroy();
+					return;
+				}
+			}
+
 			trace("Debug server connected!");
 			connection = new Connection(socket);
 			socket.on(SocketEvent.Error, function(error) trace('Socket error: $error'));
@@ -71,12 +86,24 @@ class Adapter extends DebugSession {
 		}
 
 		var server = Net.createServer(onConnected);
-		server.listen(6972, function() {
-			var args = [];
-			var haxeProcess = ChildProcess.spawn(executable, args, {stdio: Pipe, cwd: haxe.io.Path.directory(executable)});
-			haxeProcess.stdout.on(ReadableEvent.Data, onStdout);
-			haxeProcess.stderr.on(ReadableEvent.Data, onStderr);
-			haxeProcess.on(ChildProcessEvent.Exit, onExit);
+		server.listen(port, "0.0.0.0", function() {
+			if (isRemote) {
+				if (expectedClientIP != null && expectedClientIP != "") {
+					trace('Waiting for remote connection from client at IP $expectedClientIP on port $port...');
+				} else {
+					trace('Waiting for remote connection from any IP on port $port...');
+				}
+			} else {
+				if (executable == null || executable == "") {
+					trace("Error: 'program' path is missing for local debug.");
+					return;
+				}
+				var argsParams = [];
+				var haxeProcess = ChildProcess.spawn(executable, argsParams, {stdio: Pipe, cwd: haxe.io.Path.directory(executable)});
+				haxeProcess.stdout.on(ReadableEvent.Data, onStdout);
+				haxeProcess.stderr.on(ReadableEvent.Data, onStderr);
+				haxeProcess.on(ChildProcessEvent.Exit, onExit);
+			}
 		});
 	}
 
