@@ -41,6 +41,7 @@ class Adapter extends DebugSession {
 
 	var connection:Connection;
 	var postLaunchActions:Array<(Void->Void)->Void>;
+	var server:js.node.net.Server;
 
 	function executePostLaunchActions(callback) {
 		function loop() {
@@ -86,6 +87,7 @@ class Adapter extends DebugSession {
 		}
 
 		var server = Net.createServer(onConnected);
+		this.server = server;
 		server.listen(port, "0.0.0.0", function() {
 			if (isRemote) {
 				if (expectedClientIP != null && expectedClientIP != "") {
@@ -281,10 +283,8 @@ class Adapter extends DebugSession {
 			breakpoints: [
 				for (sbp in args.breakpoints) {
 					var bp:{line:Int, ?column:Int, ?condition:String} = {line: sbp.line};
-					if (sbp.column != null)
-						bp.column = sbp.column;
-					if (sbp.condition != null)
-						bp.condition = sbp.condition;
+					if (sbp.column != null) bp.column = sbp.column;
+					if (sbp.condition != null) bp.condition = sbp.condition;
 					bp;
 				}
 			]
@@ -303,6 +303,31 @@ class Adapter extends DebugSession {
 	}
 
 	override function evaluateRequest(response:EvaluateResponse, args:EvaluateArguments) {
+		var expr = args.expression != null ? StringTools.trim(args.expression) : "";
+
+		if (expr == "remote-exit" || expr == ".remote-exit") {
+			trace("Exit command received from the debug console. Closing adapter...");
+			if (server != null) {
+				server.close();
+				server = null;
+			}
+			response.success = true;
+			response.body = {
+				result: "Closing the adapter...",
+				variablesReference: 0
+			};
+			sendResponse(response);
+			sendEvent(new vscode.debugAdapter.DebugSession.TerminatedEvent(false));
+			return;
+		}
+
+		if (connection == null) {
+			response.success = false;
+			response.message = "There is no active connection to the remote debugger yet.";
+			sendResponse(response);
+			return;
+		}
+
 		connection.sendCommand(Protocol.Evaluate, {expr: args.expression, frameId: args.frameId}, function(error, result) {
 			if (error != null) {
 				response.message = error.message;

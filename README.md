@@ -36,7 +36,7 @@ And you need define the host of the server (where the debugger will connect to) 
     <define name="HXCPP_DEBUG_HOST" value="192.168.1.10" />
     ```
     
-Replace `192.168.1.10` with the IP address of the server on which the server will run.
+Replace `192.168.1.10` with the IP address of the host on which the server will run.
 
 Finally, you need a launch configuration:
 
@@ -56,6 +56,8 @@ Finally, you need a launch configuration:
 ```
 
 Replace `192.168.1.50` with the IP address of your device.
+
+Use the command `.remote-exit` on the depuration console for stop the server.
 
 (The default method of using a local executable is still supported, I just show how to use a remote one.)
 
