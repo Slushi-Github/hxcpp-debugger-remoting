@@ -62,7 +62,7 @@ Replace `192.168.1.50` with the IP address of your device.
 ## Installing from source
 
 1. Navigate to the extensions folder (`C:\Users\<username>\.vscode\extensions` on Windows, `~/.vscode/extensions` otherwise)
-2. Clone this repo: `git clone https://github.com/Slushi-GitHub/hxcpp-debugger`
-3. Change current directory to the cloned one: `cd hxcpp-debugger`.
+2. Clone this repo: `git clone https://github.com/Slushi-GitHub/hxcpp-debugger-remoting`
+3. Change current directory to the cloned one: `cd hxcpp-debugger-remoting`.
 4. Install dependencies `npm install`
 5. Do `npx haxe build.hxml`
