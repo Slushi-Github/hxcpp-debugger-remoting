@@ -110,9 +110,21 @@ class Adapter extends DebugSession {
 	}
 
 	override function attachRequest(response:AttachResponse, args:AttachRequestArguments):Void {
+		var args:HxppLaunchRequestArguments = cast args;
+		var port = args.port != null ? args.port : 6972;
+		var hasClientIP = args.clientIP != null && args.clientIP != "";
+		var host = hasClientIP ? args.clientIP : "localhost";
+
 		var socket:Socket;
-		socket = Net.connect({port: 6972}, function() {
-			trace('connected to server!');
+
+		if (hasClientIP) {
+			trace('Attaching to remote debugger at $host:$port...');
+		} else {
+			trace('Attaching to local debugger on port $port...');
+		}
+
+		socket = Net.connect({port: port, host: host}, function() {
+			trace('Connected to debugger at $host:$port!');
 			connection = new Connection(socket);
 			socket.on(SocketEvent.Error, function(error) trace('Socket error: $error'));
 
@@ -122,6 +134,13 @@ class Adapter extends DebugSession {
 					connection.onEvent = this.onEvent;
 				});
 			});
+		});
+
+		socket.on(SocketEvent.Error, function(error) {
+			trace('Failed to connect to $host:$port: $error');
+			response.success = false;
+			response.message = 'Failed to connect to $host:$port';
+			sendResponse(response);
 		});
 
 		function onExit() {
